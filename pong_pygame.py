@@ -104,22 +104,20 @@ while True:
     first = True
     reward = 0
     for step in range(max_iteration_ep):
+        
+        
+        ballReward = float(ball_pos.y) / float(screen.get_height())
+        position = float(playerL_height) / float(screen.get_height())
 
 
         total_steps += 1
         #store experience
         if first != True :
-            if (reward != 0):
-                variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
-                variables = normalize(variables.copy(), screen)
-                next_state = np.array([variables])
-                agent.store_episode_reward(current_state, action, reward, next_state)
-                reward = 0
-            else:
-                variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
-                variables = normalize(variables.copy(), screen)
-                next_state = np.array([variables])
-                agent.store_episode(current_state, action, reward, next_state)
+            
+            variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
+            variables = normalize(variables.copy(), screen)
+            next_state = np.array([variables])
+            agent.store_episode(current_state, action, reward, next_state)
                 
         first = False
 
@@ -153,27 +151,22 @@ while True:
         # ball movement
         #
         newBallX = ball_pos.x + ballXvel * dt
-        
-        
-        position = float(playerL_height) / float(screen.get_height())
         #bounce off top and bottom
         if (ball_pos.y + ballYvel * dt) < 10 or (ball_pos.y + ballYvel * dt) > screen.get_height()-10:
             ballYvel = ballYvel * -1
         #bounce off left paddle
         if (abs((ball_pos.x - paddleLcollision)) < 5): # ball is on paddle X
-            if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):
+            if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):#       hit
                 ballXvel *= -1
                 reward = position
                 hits += 1
-            else:
-                reward = ball_pos.y
         elif (ball_pos.x > paddleLcollision and newBallX <= paddleLcollision):# ball will pass paddle X
-            if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):
+            if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):#       hit
                 ballXvel *= -1
                 reward = position
                 hits += 1
-            else:
-                reward = ball_pos.y
+        else:
+            reward = ballReward
         #now the right paddle
         if (abs((ball_pos.x - paddleRcollision)) < 5): # ball is on paddle X
             if (abs(ball_pos.y - playerR_height - paddleHeight/2) < paddleHeight/2):
