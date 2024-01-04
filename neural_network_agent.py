@@ -1,0 +1,139 @@
+import numpy as np
+import keras
+import tensorflow as tf
+from keras.models import Sequential
+from keras.layers import Dense, Activation
+from keras.optimizers import Adam
+from keras.losses import Huber
+from keras.metrics import mean_squared_error
+
+keras.utils.disable_interactive_logging()
+
+class PongAgent:
+    def __init__(self, state_size, action_size, episodeLength):
+        self.n_actions = action_size
+        #some hyperparameters:
+        #
+        # lr - learning rate
+        # gamma - discount factor
+        # exploration_proba - initial exploration probability
+        # exploration_proba_decay - decay of exploration probability
+        # batch_size - size of experiences we sample to train the DNN
+        self.lr = 0.015
+        self.gamma = 0.9
+        self.exploration_proba = 1
+        self.exploration_proba_decay = 0.05
+        self.batch_size = 50
+        self.memory_buffer = []
+        self.memory_buffer_reward = []
+        self.max_memory_buffer = episodeLength
+
+        #create model having two hidden layers of 12 neurons
+        #the first layer has the same size as state size
+        #the last layer has the size of the action space
+        self.model = Sequential([
+            #keras.Input(shape=(state_size,)),
+            Dense(units=10, input_dim = state_size, activation = 'relu'),
+            Dense(units=8, activation = 'relu'),
+            # Dense(units=8, activation = 'relu'),
+            # Dense(units=8, activation = 'relu'),
+            Dense(units=action_size, activation = 'linear')
+        ])
+        # self.model = Sequential()
+        # self.model.add(keras.Input(shape=(6,)))
+        # self.model.add(Dense(12, activation='relu'))
+        self.model.compile(loss = Huber(), optimizer = Adam(learning_rate = self.lr))
+
+    def getProb(self):
+        return self.exploration_proba
+
+    #the agent computes the action to perform given a state
+    def compute_action(self, current_state):
+        #we sample a variable uniformly over [0,1]
+        #if the variable is less than the exploration proba, we choose an action randomly
+        #else, we forward the state through the DNN and choose the action with the highest Q-value
+        if np.random.uniform(0,1) < self.exploration_proba:
+            return np.random.choice(range(self.n_actions))
+        else:
+            q_values = self.model.predict(current_state)[0]
+            return np.argmax(q_values)
+    
+    #when an episode is finished, we update the exploration proba using epsilon greedy algorithm
+    def update_exploration_probability(self):
+        self.exploration_proba = self.exploration_proba * np.exp(-self.exploration_proba_decay)
+
+    #at each step, we store the corresponding experience
+    def store_episode(self, current_state, action, reward, next_state):
+        #we use a dictionary to store them
+        self.memory_buffer.append({
+            "current_state":current_state,
+            "action":action,
+            "reward":reward,
+            "next_state":next_state,
+        })
+        if len(self.memory_buffer) > self.max_memory_buffer:
+            self.memory_buffer.pop(0)
+    
+    def store_episode_reward(self, current_state, action, reward, next_state):
+        #we use a dictionary to store them
+        self.memory_buffer_reward.append({
+            "current_state":current_state,
+            "action":action,
+            "reward":reward,
+            "next_state":next_state,
+        })
+            
+            
+    # def train_step(self, data):
+    #     # Unpack the data. Its structure depends on your model and
+    #     # on what you pass to `fit()`.
+    #     x, y = data
+
+    #     with tf.GradientTape() as tape:
+    #         y_pred = self(x, training=True)  # Forward pass
+    #         # Compute the loss value
+    #         # (the loss function is configured in `compile()`)
+    #         loss = self.compute_loss(y=y, y_pred=y_pred)
+
+    #     # Compute gradients
+    #     trainable_vars = x
+    #     gradients = tape.gradient(loss, x)
+
+    #     # Update weights
+    #     self.model.optimizer.apply(gradients, trainable_vars)
+            
+    def disableRandom(self):
+        self.exploration_proba = 0
+        self.exploration_proba_decay = 1
+
+    def reduceRandom(self):
+        self.exploration_proba = 0.8
+        self.exploration_proba_decay = 0.07
+    #at the end of each episode, we train the model
+    def train(self):
+        batch_sample = []
+        #select a batch of random experiences
+        for i in range(self.batch_size):
+            index = np.random.randint(0,len(self.memory_buffer)-len(self.memory_buffer_reward))
+            batch_sample.append(self.memory_buffer.pop(index))
+
+        #add rewarded events to the memory buffer
+        for sample in self.memory_buffer_reward:
+            batch_sample.insert(0, sample)
+
+        #we iterate over the selected experiences
+        for experience in batch_sample:
+            #we compute the Q-values of S_t
+            q_current_state = self.model.predict((experience["current_state"]))
+            #we compute the Q-target using bellman optimality equation
+            q_target = experience["reward"]
+            q_target = q_target + (self.gamma * np.max(self.model.predict(experience["next_state"])))
+            q_current_state[0][experience["action"]] = q_target
+            #train the model
+            self.model.fit(experience["current_state"], q_current_state, verbose=0)
+        
+        self.memory_buffer.clear()
+        self.memory_buffer_reward.clear()
+
+
+        
