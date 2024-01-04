@@ -22,7 +22,7 @@ class PongAgent:
         self.lr = 0.015
         self.gamma = 0.9
         self.exploration_proba = 1
-        self.exploration_proba_decay = 0.05
+        self.exploration_proba_decay = 0.1
         self.batch_size = 50
         self.memory_buffer = []
         self.memory_buffer_reward = []
@@ -56,7 +56,7 @@ class PongAgent:
             return np.random.choice(range(self.n_actions))
         else:
             q_values = self.model.predict(current_state)[0]
-            return np.argmax(q_values)
+            return q_values
     
     #when an episode is finished, we update the exploration proba using epsilon greedy algorithm
     def update_exploration_probability(self):
@@ -123,14 +123,14 @@ class PongAgent:
 
         #we iterate over the selected experiences
         for experience in batch_sample:
-            #we compute the Q-values of S_t
-            q_current_state = self.model.predict((experience["current_state"]))
             #we compute the Q-target using bellman optimality equation
-            q_target = experience["reward"]
-            q_target = q_target + (self.gamma * np.max(self.model.predict(experience["next_state"])))
-            q_current_state[0][experience["action"]] = q_target
+            target = experience["reward"]
+            if target == 0:
+                target = self.gamma * self.model.predict(experience["next_state"])
             #train the model
-            self.model.fit(experience["current_state"], q_current_state, verbose=0)
+            target = np.array([target])
+            self.model.fit(experience["current_state"], target, verbose="0")
+
         
         self.memory_buffer.clear()
         self.memory_buffer_reward.clear()

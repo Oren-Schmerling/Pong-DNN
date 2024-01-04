@@ -3,7 +3,6 @@ import numpy as np
 from pygame import *
 from neural_network_agent import PongAgent
 import os
-import keras
 import pathlib
 
 #
@@ -65,19 +64,19 @@ def normalize(var, screen):
 # link up DNN to game
 #
 #
-trialName = "faster4"
+trialName = "PongSmart/debug"
 pathlib.Path(trialName+"/").mkdir(exist_ok=True) 
 episodeLength = 500
 variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
 state_size = 5
-action_size = 3
+action_size = 1
 max_iteration_ep = episodeLength
 hitReward = 1
 punishment = -1
 agent = PongAgent(state_size, action_size, episodeLength)
 total_steps = 0
 with open(trialName+"/LOG.txt", "a+") as f:
-        f.write("learning rate = "+str(agent.lr)+ "\ngamma = "+str(agent.gamma)+"\nrandom chance = "+str(agent.exploration_proba)+"\nrandom decay = "+str(agent.exploration_proba_decay)+"\nbatch size = "+str(agent.batch_size)+"\nreward = "+str(hitReward)+"\npunishment = "+str(punishment)+"\n")
+        f.write("learning rate = "+str(agent.lr)+ "\ngamma = "+str(agent.gamma)+"\nrandom chance = "+str(agent.exploration_proba)+"\nrandom decay = "+str(agent.exploration_proba_decay)+"\nbatch size = "+str(agent.batch_size)+"\n")
 
 #Saving the model
 numsave = 0
@@ -99,6 +98,9 @@ while True:
     hits = 0
     Rscore = 0
     ballXvel, ballYvel, ball_pos, playerR_height, playerL_height, starting = reset(ballXvel, ballYvel, ball_pos, screen)
+    variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
+    action = .5
+    current_state = np.array([normalize(variables.copy(), screen)])
     first = True
     reward = 0
     for step in range(max_iteration_ep):
@@ -152,6 +154,8 @@ while True:
         #
         newBallX = ball_pos.x + ballXvel * dt
         
+        
+        position = float(playerL_height) / float(screen.get_height())
         #bounce off top and bottom
         if (ball_pos.y + ballYvel * dt) < 10 or (ball_pos.y + ballYvel * dt) > screen.get_height()-10:
             ballYvel = ballYvel * -1
@@ -159,17 +163,17 @@ while True:
         if (abs((ball_pos.x - paddleLcollision)) < 5): # ball is on paddle X
             if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):
                 ballXvel *= -1
-                reward = hitReward
+                reward = position
                 hits += 1
             else:
-                reward = punishment
+                reward = ball_pos.y
         elif (ball_pos.x > paddleLcollision and newBallX <= paddleLcollision):# ball will pass paddle X
             if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):
                 ballXvel *= -1
-                reward = hitReward
+                reward = position
                 hits += 1
             else:
-                reward = punishment
+                reward = ball_pos.y
         #now the right paddle
         if (abs((ball_pos.x - paddleRcollision)) < 5): # ball is on paddle X
             if (abs(ball_pos.y - playerR_height - paddleHeight/2) < paddleHeight/2):
@@ -217,9 +221,10 @@ while True:
         fps = 10*trainSpeed
 
 
-        if action == 0 and playerL_height > 0:
+        position = float(playerL_height) / float(screen.get_height())
+        if action < position and playerL_height > 0:
             playerL_height -= padSpeed * dt
-        if action == 1 and playerL_height + paddleHeight < screen.get_height():
+        if action > position and playerL_height + paddleHeight < screen.get_height():
             playerL_height += padSpeed * dt
         #
         # player controls
