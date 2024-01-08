@@ -215,9 +215,10 @@ while True:
 
 
         position = float(playerL_height) / float(screen.get_height())
-        if action < position and playerL_height > 0:
+        normHeight = float(paddleHeight) / float(screen.get_height())
+        if action < abs(position-normHeight) and playerL_height > 0:
             playerL_height -= padSpeed * dt
-        if action > position and playerL_height + paddleHeight < screen.get_height():
+        if action > abs(position-normHeight) and playerL_height + paddleHeight < screen.get_height():
             playerL_height += padSpeed * dt
         #
         # player controls
