@@ -66,6 +66,8 @@ def normalize(var, screen):
 #
 trialName = "debug"
 pathlib.Path(trialName+"/").mkdir(exist_ok=True) 
+with open(trialName+"/", "a+") as f:
+    f.write(trialName)
 episodeLength = 500
 variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
 state_size = 5
