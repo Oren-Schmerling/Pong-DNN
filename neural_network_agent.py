@@ -19,7 +19,7 @@ class PongAgent:
         # exploration_proba - initial exploration probability
         # exploration_proba_decay - decay of exploration probability
         # batch_size - size of experiences we sample to train the DNN
-        self.lr = 0.015
+        self.lr = 0.01
         self.gamma = 0.9
         self.exploration_proba = 1
         self.exploration_proba_decay = 0.1

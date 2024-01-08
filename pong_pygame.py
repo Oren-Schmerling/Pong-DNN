@@ -64,7 +64,7 @@ def normalize(var, screen):
 # link up DNN to game
 #
 #
-trialName = "debug"
+trialName = "slower"
 pathlib.Path(trialName+"/").mkdir(exist_ok=True) 
 with open(".gitignore", "a+") as f:
     f.write(trialName+"\n")
@@ -89,7 +89,7 @@ numsave = 0
 # agent.model.load_weights(checkpoint_path)
 #
 # pick one or the other:
-# agent.disableRandom()
+agent.disableRandom()
 # agent.reduceRandom()
 
 
@@ -218,10 +218,10 @@ while True:
 
 
         position = float(playerL_height) / float(screen.get_height())
-        normHeight = float(paddleHeight) / float(screen.get_height()*2)
-        if action < abs(position+normHeight) and playerL_height > 0:
+        normHeight = float(paddleHeight) / float(screen.get_height())
+        if action < position and playerL_height > 0:
             playerL_height -= padSpeed * dt
-        if action > abs(position-normHeight) and playerL_height + paddleHeight < screen.get_height():
+        if action > (position+normHeight) and playerL_height + paddleHeight < screen.get_height():
             playerL_height += padSpeed * dt
         #
         # player controls
