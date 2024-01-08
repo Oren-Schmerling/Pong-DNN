@@ -64,7 +64,7 @@ def normalize(var, screen):
 # link up DNN to game
 #
 #
-trialName = "PongSmart/debug"
+trialName = "debug"
 pathlib.Path(trialName+"/").mkdir(exist_ok=True) 
 episodeLength = 500
 variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
