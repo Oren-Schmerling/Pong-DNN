@@ -3,7 +3,6 @@ import numpy as np
 from pygame import *
 from neural_network_agent import PongAgent
 import os
-import keras
 import pathlib
 
 #
@@ -65,19 +64,21 @@ def normalize(var, screen):
 # link up DNN to game
 #
 #
-trialName = "faster4"
+trialName = "slower"
 pathlib.Path(trialName+"/").mkdir(exist_ok=True) 
+with open(".gitignore", "a+") as f:
+    f.write(trialName+"\n")
 episodeLength = 500
 variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
 state_size = 5
-action_size = 3
+action_size = 1
 max_iteration_ep = episodeLength
 hitReward = 1
 punishment = -1
 agent = PongAgent(state_size, action_size, episodeLength)
 total_steps = 0
 with open(trialName+"/LOG.txt", "a+") as f:
-        f.write("learning rate = "+str(agent.lr)+ "\ngamma = "+str(agent.gamma)+"\nrandom chance = "+str(agent.exploration_proba)+"\nrandom decay = "+str(agent.exploration_proba_decay)+"\nbatch size = "+str(agent.batch_size)+"\nreward = "+str(hitReward)+"\npunishment = "+str(punishment)+"\n")
+        f.write("learning rate = "+str(agent.lr)+ "\ngamma = "+str(agent.gamma)+"\nrandom chance = "+str(agent.exploration_proba)+"\nrandom decay = "+str(agent.exploration_proba_decay)+"\nbatch size = "+str(agent.batch_size)+"\n")
 
 #Saving the model
 numsave = 0
@@ -88,7 +89,7 @@ numsave = 0
 # agent.model.load_weights(checkpoint_path)
 #
 # pick one or the other:
-# agent.disableRandom()
+agent.disableRandom()
 # agent.reduceRandom()
 
 
@@ -99,25 +100,26 @@ while True:
     hits = 0
     Rscore = 0
     ballXvel, ballYvel, ball_pos, playerR_height, playerL_height, starting = reset(ballXvel, ballYvel, ball_pos, screen)
+    variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
+    action = .5
+    current_state = np.array([normalize(variables.copy(), screen)])
     first = True
     reward = 0
     for step in range(max_iteration_ep):
+        
+        
+        ballReward = float(ball_pos.y) / float(screen.get_height())
+        position = float(playerL_height) / float(screen.get_height())
 
 
         total_steps += 1
         #store experience
         if first != True :
-            if (reward != 0):
-                variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
-                variables = normalize(variables.copy(), screen)
-                next_state = np.array([variables])
-                agent.store_episode_reward(current_state, action, reward, next_state)
-                reward = 0
-            else:
-                variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
-                variables = normalize(variables.copy(), screen)
-                next_state = np.array([variables])
-                agent.store_episode(current_state, action, reward, next_state)
+            
+            variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
+            variables = normalize(variables.copy(), screen)
+            next_state = np.array([variables])
+            agent.store_episode(current_state, action, reward, next_state)
                 
         first = False
 
@@ -139,37 +141,35 @@ while True:
 
         # fill the screen with a color to wipe away anything from last frame
         screen.fill("black")
-
+        cursorX = paddleOffset + (paddleWidth/2)
         playerR_rect = Rect(paddleRX, playerR_height, paddleWidth, paddleHeight)
         playerL_rect = Rect(paddleLX, playerL_height, paddleWidth, paddleHeight)
         pygame.draw.rect(screen, "white", playerR_rect)
         pygame.draw.rect(screen, "white", playerL_rect)
         pygame.draw.circle(screen, "white", ball_pos, 10)
+        pygame.draw.circle(screen, "green", (cursorX, action*screen.get_height()), 5)
         
         
         #
         # ball movement
         #
         newBallX = ball_pos.x + ballXvel * dt
-        
         #bounce off top and bottom
         if (ball_pos.y + ballYvel * dt) < 10 or (ball_pos.y + ballYvel * dt) > screen.get_height()-10:
             ballYvel = ballYvel * -1
         #bounce off left paddle
         if (abs((ball_pos.x - paddleLcollision)) < 5): # ball is on paddle X
-            if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):
+            if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):#       hit
                 ballXvel *= -1
-                reward = hitReward
+                reward = position
                 hits += 1
-            else:
-                reward = punishment
         elif (ball_pos.x > paddleLcollision and newBallX <= paddleLcollision):# ball will pass paddle X
-            if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):
+            if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):#       hit
                 ballXvel *= -1
-                reward = hitReward
+                reward = position
                 hits += 1
-            else:
-                reward = punishment
+        else:
+            reward = ballReward
         #now the right paddle
         if (abs((ball_pos.x - paddleRcollision)) < 5): # ball is on paddle X
             if (abs(ball_pos.y - playerR_height - paddleHeight/2) < paddleHeight/2):
@@ -217,9 +217,11 @@ while True:
         fps = 10*trainSpeed
 
 
-        if action == 0 and playerL_height > 0:
+        position = float(playerL_height) / float(screen.get_height())
+        normHeight = float(paddleHeight) / float(screen.get_height())
+        if action < position and playerL_height > 0:
             playerL_height -= padSpeed * dt
-        if action == 1 and playerL_height + paddleHeight < screen.get_height():
+        if action > (position+normHeight) and playerL_height + paddleHeight < screen.get_height():
             playerL_height += padSpeed * dt
         #
         # player controls

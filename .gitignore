@@ -1,4 +1,5 @@
-venv
-venvAba
+debug
 __pycache__
 .vscode
+debug
+slower
