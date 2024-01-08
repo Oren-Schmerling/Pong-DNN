@@ -66,8 +66,8 @@ def normalize(var, screen):
 #
 trialName = "debug"
 pathlib.Path(trialName+"/").mkdir(exist_ok=True) 
-with open(trialName+"/", "a+") as f:
-    f.write(trialName)
+with open(".gitignore", "a+") as f:
+    f.write(trialName+"\n")
 episodeLength = 500
 variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
 state_size = 5
@@ -141,12 +141,13 @@ while True:
 
         # fill the screen with a color to wipe away anything from last frame
         screen.fill("black")
-
+        cursorX = paddleOffset + (paddleWidth/2)
         playerR_rect = Rect(paddleRX, playerR_height, paddleWidth, paddleHeight)
         playerL_rect = Rect(paddleLX, playerL_height, paddleWidth, paddleHeight)
         pygame.draw.rect(screen, "white", playerR_rect)
         pygame.draw.rect(screen, "white", playerL_rect)
         pygame.draw.circle(screen, "white", ball_pos, 10)
+        pygame.draw.circle(screen, "green", (cursorX, action*screen.get_height()), 5)
         
         
         #

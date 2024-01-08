@@ -53,10 +53,10 @@ class PongAgent:
         #if the variable is less than the exploration proba, we choose an action randomly
         #else, we forward the state through the DNN and choose the action with the highest Q-value
         if np.random.uniform(0,1) < self.exploration_proba:
-            return np.random.choice(range(self.n_actions))
+            return np.random.uniform(0,1)
         else:
             q_values = self.model.predict(current_state)[0]
-            return q_values
+            return q_values[0]
     
     #when an episode is finished, we update the exploration proba using epsilon greedy algorithm
     def update_exploration_probability(self):
