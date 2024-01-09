@@ -64,7 +64,7 @@ def normalize(var, screen):
 # link up DNN to game
 #
 #
-trialName = "slower"
+trialName = "complexDebug"
 pathlib.Path(trialName+"/").mkdir(exist_ok=True) 
 with open(".gitignore", "a+") as f:
     f.write(trialName+"\n")
@@ -119,7 +119,11 @@ while True:
             variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
             variables = normalize(variables.copy(), screen)
             next_state = np.array([variables])
-            agent.store_episode(current_state, action, reward, next_state)
+            if reward == 0:
+                agent.store_episode(current_state, action, reward, next_state)
+            else:
+                agent.store_episode_reward(current_state, action, reward, next_state)
+                
                 
         first = False
 
@@ -163,13 +167,17 @@ while True:
                 ballXvel *= -1
                 reward = position
                 hits += 1
+            else: #miss
+                reward = ballReward
         elif (ball_pos.x > paddleLcollision and newBallX <= paddleLcollision):# ball will pass paddle X
             if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):#       hit
                 ballXvel *= -1
                 reward = position
                 hits += 1
-        else:
-            reward = ballReward
+            else: #miss
+                reward = ballReward
+        else: # not at paddle X
+            reward = 0
         #now the right paddle
         if (abs((ball_pos.x - paddleRcollision)) < 5): # ball is on paddle X
             if (abs(ball_pos.y - playerR_height - paddleHeight/2) < paddleHeight/2):
