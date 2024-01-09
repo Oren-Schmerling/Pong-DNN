@@ -20,7 +20,7 @@ class PongAgent:
         # exploration_proba_decay - decay of exploration probability
         # batch_size - size of experiences we sample to train the DNN
         self.lr = 0.01
-        self.gamma = 0.9
+        self.gamma = 0.95
         self.exploration_proba = 1
         self.exploration_proba_decay = 0.1
         self.batch_size = 50
@@ -33,10 +33,10 @@ class PongAgent:
         #the last layer has the size of the action space
         self.model = Sequential([
             #keras.Input(shape=(state_size,)),
-            Dense(units=10, input_dim = state_size, activation = 'relu'),
-            Dense(units=8, activation = 'relu'),
-            # Dense(units=8, activation = 'relu'),
-            # Dense(units=8, activation = 'relu'),
+            Dense(units=8, input_dim = state_size, activation = 'relu'),
+            Dense(units=6, activation = 'relu'),
+            Dense(units=6, activation = 'relu'),
+            Dense(units=4, activation = 'relu'),
             Dense(units=action_size, activation = 'linear')
         ])
         # self.model = Sequential()
