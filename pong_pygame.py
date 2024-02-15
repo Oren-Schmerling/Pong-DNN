@@ -42,7 +42,9 @@ averageMemory = list()
 
 def reset(ballXvel, ballYvel, ball_pos, screen):
     ball_pos = Vector2(screen.get_width()/2, screen.get_height()/2)
-    ballYvel = np.random.uniform(-300, 300)
+    ballYvel = 0
+    while (abs(ballYvel) < 30):
+        ballYvel = np.random.uniform(-300, 300)
     ballXvel *= -1
     playerR_height = screen.get_height()/2
     playerL_height = screen.get_height()/2
@@ -63,11 +65,10 @@ def normalize(var, screen):
 #
 # link up DNN to game
 #
-#
-trialName = "complexDebug"
+trialName = "4hidden"
+trialName = "trainingData/"+trialName
+pathlib.Path("trainingData/").mkdir(exist_ok=True) 
 pathlib.Path(trialName+"/").mkdir(exist_ok=True) 
-with open(".gitignore", "a+") as f:
-    f.write(trialName+"\n")
 episodeLength = 500
 variables = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]
 state_size = 5
@@ -78,7 +79,7 @@ punishment = -1
 agent = PongAgent(state_size, action_size, episodeLength)
 total_steps = 0
 with open(trialName+"/LOG.txt", "a+") as f:
-        f.write("learning rate = "+str(agent.lr)+ "\ngamma = "+str(agent.gamma)+"\nrandom chance = "+str(agent.exploration_proba)+"\nrandom decay = "+str(agent.exploration_proba_decay)+"\nbatch size = "+str(agent.batch_size)+"\n")
+        f.write("initial learning rate = "+str(agent.initial_learning_rate)+ "\nlearning rate decay = "+ str(agent.decay_rate) +"\nbatch size = "+str(agent.batch_size)+"\n")
 
 #Saving the model
 numsave = 0
@@ -165,14 +166,14 @@ while True:
         if (abs((ball_pos.x - paddleLcollision)) < 5): # ball is on paddle X
             if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):#       hit
                 ballXvel *= -1
-                reward = position
+                reward = ballReward
                 hits += 1
             else: #miss
                 reward = ballReward
         elif (ball_pos.x > paddleLcollision and newBallX <= paddleLcollision):# ball will pass paddle X
             if (abs(ball_pos.y - playerL_height - paddleHeight/2) < paddleHeight/2):#       hit
                 ballXvel *= -1
-                reward = position
+                reward = ballReward
                 hits += 1
             else: #miss
                 reward = ballReward
@@ -260,8 +261,11 @@ while True:
     else:
         averageMemory[e%memBuffer] = hitRate
     episodeAvg = float(sum(averageMemory)) / float(averageMemory.__len__())
+    hitRate = round(hitRate, 3)
+    episodeAvg = round(episodeAvg, 3)
+    string = f"hit rate: {hitRate:.3f}  in episode "+ str(e)+ f" and  {episodeAvg:.3f} in last "+ str(averageMemory.__len__())+" episodes\n"
     with open(trialName+"/LOG.txt", "a+") as f:
-        f.write("hit rate: "+str(round(hitRate, 3))+"  in episode "+ str(e)+" and  "+str(round(episodeAvg, 3))+" in last "+ str(averageMemory.__len__())+" episodes      random prob: "+ str(round(agent.getProb() * 100, 3))+"\n")
+        f.write(string)
     if (agent.getProb() < 0.01):
         agent.disableRandom()
 
@@ -274,8 +278,5 @@ while True:
         agent.model.save_weights(checkpoint_path)
         with open(trialName+"/LOG.txt", "a+") as f:
             f.write("Saved! -- checkpoint "+ str(numsave)+"\n")
-
-
-    agent.update_exploration_probability()
 
 pygame.quit()

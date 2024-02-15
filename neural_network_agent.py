@@ -19,11 +19,14 @@ class PongAgent:
         # exploration_proba - initial exploration probability
         # exploration_proba_decay - decay of exploration probability
         # batch_size - size of experiences we sample to train the DNN
-        self.lr = 0.01
-        self.gamma = 0.95
-        self.exploration_proba = 1
-        self.exploration_proba_decay = 0.1
+        self.initial_learning_rate = 0.04
+        self.decay_rate = .99
         self.batch_size = 50
+        self.lr_schedule = keras.optimizers.schedules.ExponentialDecay(self.initial_learning_rate,decay_steps=self.batch_size,decay_rate=self.decay_rate)
+        self.gamma = 0.7
+        self.mult = 2.0 - self.gamma
+        self.exploration_proba = 0
+        self.exploration_proba_decay = 0.1
         self.memory_buffer = []
         self.memory_buffer_reward = []
         self.max_memory_buffer = episodeLength
@@ -33,16 +36,18 @@ class PongAgent:
         #the last layer has the size of the action space
         self.model = Sequential([
             #keras.Input(shape=(state_size,)),
-            Dense(units=8, input_dim = state_size, activation = 'relu'),
+            Dense(units=6, input_dim = state_size, activation = 'relu'),
             Dense(units=6, activation = 'relu'),
             Dense(units=6, activation = 'relu'),
             Dense(units=4, activation = 'relu'),
+            # Dense(units=4, activation = 'relu'),
+            # Dense(units=4, activation = 'relu'),
             Dense(units=action_size, activation = 'linear')
         ])
         # self.model = Sequential()
         # self.model.add(keras.Input(shape=(6,)))
         # self.model.add(Dense(12, activation='relu'))
-        self.model.compile(loss = Huber(), optimizer = Adam(learning_rate = self.lr))
+        self.model.compile(loss = Huber(), optimizer = Adam(learning_rate = self.lr_schedule))
 
     def getProb(self):
         return self.exploration_proba
@@ -121,12 +126,20 @@ class PongAgent:
         for sample in self.memory_buffer_reward:
             batch_sample.insert(0, sample)
 
+        # current state = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]            
+
         #we iterate over the selected experiences
         for experience in batch_sample:
             #we compute the Q-target using bellman optimality equation
             target = experience["reward"]
             if target == 0:
-                target = self.gamma * self.model.predict(experience["next_state"])
+                target = self.model.predict(experience["next_state"])
+                # height = experience["current_state"][0] #height is normalized to a 0-1 scale
+                # next = self.model.predict(experience["next_state"])
+                # if (height[0] > next[0]):
+                #     target = self.mult * next
+                # else:
+                #     target = self.gamma * next
             #train the model
             target = np.array([target])
             self.model.fit(experience["current_state"], target, verbose="0")
