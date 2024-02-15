@@ -10,7 +10,7 @@ from keras.metrics import mean_squared_error
 keras.utils.disable_interactive_logging()
 
 class PongAgent:
-    def __init__(self, state_size, action_size, episodeLength):
+    def __init__(self, state_size, action_size, episodeLength, numHiddenLayers = 3, LRInitial = 0.02, LRDecay = 99):
         self.n_actions = action_size
         #some hyperparameters:
         #
@@ -19,8 +19,8 @@ class PongAgent:
         # exploration_proba - initial exploration probability
         # exploration_proba_decay - decay of exploration probability
         # batch_size - size of experiences we sample to train the DNN
-        self.initial_learning_rate = 0.04
-        self.decay_rate = .99
+        self.initial_learning_rate = LRInitial
+        self.decay_rate = LRDecay
         self.batch_size = 50
         self.lr_schedule = keras.optimizers.schedules.ExponentialDecay(self.initial_learning_rate,decay_steps=self.batch_size,decay_rate=self.decay_rate)
         self.gamma = 0.7
@@ -37,16 +37,15 @@ class PongAgent:
         self.model = Sequential([
             #keras.Input(shape=(state_size,)),
             Dense(units=6, input_dim = state_size, activation = 'relu'),
-            Dense(units=6, activation = 'relu'),
-            Dense(units=6, activation = 'relu'),
-            Dense(units=4, activation = 'relu'),
+            # Dense(units=6, activation = 'relu'),
+            # Dense(units=6, activation = 'relu'),
             # Dense(units=4, activation = 'relu'),
             # Dense(units=4, activation = 'relu'),
-            Dense(units=action_size, activation = 'linear')
+            # Dense(units=4, activation = 'relu'),
         ])
-        # self.model = Sequential()
-        # self.model.add(keras.Input(shape=(6,)))
-        # self.model.add(Dense(12, activation='relu'))
+        for i in range(numHiddenLayers):
+            self.model.add(Dense(units=6, activation = 'relu'))
+        self.model.add(Dense(units=action_size, activation = 'linear'))
         self.model.compile(loss = Huber(), optimizer = Adam(learning_rate = self.lr_schedule))
 
     def getProb(self):
