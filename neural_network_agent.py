@@ -115,30 +115,20 @@ class PongAgent:
         self.exploration_proba_decay = 0.07
     #at the end of each episode, we train the model
     def train(self):
-        batch_sample = []
+        batch_sample = self.memory_buffer_reward.copy()
         #select a batch of random experiences
-        for i in range(self.batch_size):
-            index = np.random.randint(0,len(self.memory_buffer)-len(self.memory_buffer_reward))
+        for i in range(self.batch_size - len(batch_sample)):
+            index = np.random.randint(0,len(self.memory_buffer)-1)
             batch_sample.append(self.memory_buffer.pop(index))
-
-        #add rewarded events to the memory buffer
-        for sample in self.memory_buffer_reward:
-            batch_sample.insert(0, sample)
 
         # current state = [playerL_height, ball_pos.x, ball_pos.y, ballXvel, ballYvel]            
 
         #we iterate over the selected experiences
         for experience in batch_sample:
-            #we compute the Q-target using bellman optimality equation
-            target = experience["reward"]
-            if target == 0:
+            if experience["reward"] == 0:
                 target = self.model.predict(experience["next_state"])
-                # height = experience["current_state"][0] #height is normalized to a 0-1 scale
-                # next = self.model.predict(experience["next_state"])
-                # if (height[0] > next[0]):
-                #     target = self.mult * next
-                # else:
-                #     target = self.gamma * next
+            else:
+                target = experience["reward"]
             #train the model
             target = np.array([target])
             self.model.fit(experience["current_state"], target, verbose="0")
@@ -146,6 +136,7 @@ class PongAgent:
         
         self.memory_buffer.clear()
         self.memory_buffer_reward.clear()
+        batch_sample.clear()
 
 
         
